@@ -22,5 +22,5 @@ CREATE OR REPLACE TAG rap_region_tag
 -- ============================================================
 USE ROLE SECURITYADMIN;
 
-GRANT USAGE ON TAG HOSPITALITY_DB.FINANCE.rap_region_tag
+GRANT APPLY ON TAG HOSPITALITY_DB.FINANCE.rap_region_tag
   TO ROLE ROLE_FINANCE_ADMIN;
