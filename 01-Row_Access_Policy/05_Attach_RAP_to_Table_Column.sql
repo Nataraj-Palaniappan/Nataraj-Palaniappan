@@ -1,12 +1,6 @@
 -- ============================================================
 -- FILE: 05_Attach_RAP_to_Table_Column.sql
--- PURPOSE: Attach the row access policy to the table using TAGS
---
--- WHY TAGS?
---   Instead of manually ALTERing every table, we:
---   1. Assign a TAG to the table
---   2. Bind the RAP to that TAG
---   → Any future table with the tag auto-inherits the policy!
+-- PURPOSE: Attach the row access policy to the table
 -- ============================================================
 
 USE ROLE SYSADMIN;
@@ -14,7 +8,7 @@ USE DATABASE HOSPITALITY_DB;
 USE SCHEMA HOSPITALITY_DB.FINANCE;
 
 -- ============================================================
--- Step 1: Assign the tag to the table
+-- Step 1: Assign the tag to the table (Only for metadata/documentation purposes)
 -- ============================================================
 ALTER TABLE hotel_revenue
   SET TAG rap_region_tag = 'region_controlled';

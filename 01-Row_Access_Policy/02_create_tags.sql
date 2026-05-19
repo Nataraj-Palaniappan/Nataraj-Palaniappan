@@ -1,7 +1,8 @@
 -- ============================================================
 -- FILE: 02_create_tags.sql
--- PURPOSE: Create tags used to attach row access policies
---          to tables/columns via tag-based policies
+-- NOTE: In this exercise, the tags serve only as **metadata/documentation** 
+-- The TAGs label the table/column as "region_controlled" for governance visibility. 
+-- They do NOT enforce the row access policy.
 -- ============================================================
 
 USE ROLE SYSADMIN;
