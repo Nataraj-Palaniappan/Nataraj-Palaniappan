@@ -120,6 +120,11 @@ $$;
 
 -- ============================================================================
 -- LIST USERS BY ROLE (Audit who has what)
+/* You pass a role name (e.g. 'ENGINEER')
+It runs SHOW GRANTS OF ROLE <that_role> internally — this lists who/what has been granted that role
+It captures the output using RESULT_SCAN(LAST_QUERY_ID()) — this converts the SHOW command output into a queryable table
+It filters to only rows where granted_to = 'USER' — so you only see users, not other roles
+Returns a clean table with: user name, role name, and who granted it */
 -- ============================================================================
 
 CREATE OR REPLACE PROCEDURE RBAC_LAB_DB.RBAC_LAB_SCHEMA.LIST_ROLE_MEMBERS(
@@ -178,3 +183,6 @@ $$;
 
 -- List all DBAs
 -- CALL RBAC_LAB_DB.RBAC_LAB_SCHEMA.LIST_ROLE_MEMBERS('DBA');
+
+-- NOTE
+

@@ -1,0 +1,7 @@
+[theme]
+primaryColor = "#D97757"
+backgroundColor = "#1E1E2E"
+secondaryBackgroundColor = "#2B2B3B"
+textColor = "#E8E4D9"
+font = "sans serif"
+## More theme options here: https://docs.streamlit.io/develop/concepts/configuration/theming
