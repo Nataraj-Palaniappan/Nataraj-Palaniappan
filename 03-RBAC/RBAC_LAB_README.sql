@@ -1,0 +1,146 @@
+-- ============================================================================
+-- RBAC & PRIVILEGE MANAGEMENT LAB - README
+-- ============================================================================
+
+-- ╔════════════════════════════════════════════════════════════════════════════╗
+-- ║  TOPIC:  Role-Based Access Control (RBAC) & Privilege Management         ║
+-- ║  LEVEL:  Intermediate DBA                                                ║
+-- ║  TIME:   60-90 minutes                                                   ║
+-- ╚════════════════════════════════════════════════════════════════════════════╝
+
+-- ┌──────────────────────────────────────────────────────────────────────────┐
+-- │  OVERVIEW                                                                 │
+-- └──────────────────────────────────────────────────────────────────────────┘
+--
+-- This lab walks through Snowflake RBAC from discovery to implementation.
+-- You'll learn how to inspect privileges, design role hierarchies, grant
+-- access, configure future grants, and audit your security posture.
+--
+-- Execute each section sequentially. Comments explain the "why" behind
+-- each step.
+--
+
+-- ┌──────────────────────────────────────────────────────────────────────────┐
+-- │  PRE-REQUISITES                                                           │
+-- └──────────────────────────────────────────────────────────────────────────┘
+--
+-- • Role: SYSADMIN + SECURITYADMIN (for Section 0 setup only)
+-- • After setup, all exercises run under RBAC_LAB_OWNER or lab roles
+-- • User: NATARAJ_PALANIAPPAN (replace with your username if different)
+-- • Database: RBAC_LAB_DB (created in Section 0)
+-- • Schema: RBAC_LAB_SCHEMA (created in Section 0)
+-- • Warehouse: RBAC_LAB_WH (created in Section 0)
+--
+
+-- ┌──────────────────────────────────────────────────────────────────────────┐
+-- │  LAB STRUCTURE (12 Sections)                                              │
+-- └──────────────────────────────────────────────────────────────────────────┘
+--
+-- Section 0: Setup
+--   → Create dedicated DB, schema, warehouse, and owner role
+--
+-- Section 1: Understanding Your Current Role & Privileges
+--   → Discover what you have access to today
+--
+-- Section 2: Inspecting Object-Level Privileges
+--   → Audit who has access to databases, schemas, tables
+--
+-- Section 3: Creating Roles & Building a Role Hierarchy
+--   → Design the two-tier pattern: access roles + functional roles
+--
+-- Section 4: Granting Privileges to Access Roles
+--   → Assign READ, WRITE, ADMIN permissions at the object level
+--
+-- Section 5: Future Grants
+--   → Auto-apply privileges to objects created in the future
+--
+-- Section 6: Assigning Roles to Users & Testing
+--   → Connect roles to users and verify access patterns
+--
+-- Section 7: Revoking Privileges
+--   → Remove access and verify revocation
+--
+-- Section 8: WITH GRANT OPTION (Delegated Administration)
+--   → Allow roles to re-grant privileges they hold
+--
+-- Section 9: Managed Access Schemas
+--   → Centralize grant control for tighter security
+--
+-- Section 10: Monitoring & Auditing Privileges
+--   → Use ACCOUNT_USAGE and SHOW commands for audit
+--
+-- Section 11: Database Roles
+--   → Scoped roles for database-level privilege management & sharing
+--
+-- Section 12: Cleanup
+--   → Remove all lab objects and roles
+--
+
+-- ┌──────────────────────────────────────────────────────────────────────────┐
+-- │  ARCHITECTURE DIAGRAM (Role Hierarchy)                                    │
+-- └──────────────────────────────────────────────────────────────────────────┘
+--
+--                         ┌──────────────┐
+--                         │  SYSADMIN    │
+--                         └──────┬───────┘
+--               ┌────────────────┼────────────────┐
+--               ▼                ▼                 ▼
+--     ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+--     │  RBAC_LAB_   │  │  RBAC_LAB_   │  │  RBAC_LAB_   │
+--     │  ANALYST     │  │  ENGINEER    │  │  DBA          │
+--     │ (Functional) │  │ (Functional) │  │ (Functional)  │
+--     └──────┬───────┘  └──┬────┬──────┘  └──┬──┬────┬───┘
+--            │              │    │             │  │    │
+--            ▼              ▼    ▼             ▼  ▼    ▼
+--     ┌──────────────┐  ┌──────────┐  ┌──────────────────┐
+--     │  RBAC_LAB_   │  │RBAC_LAB_ │  │   RBAC_LAB_      │
+--     │  READ        │  │WRITE     │  │   ADMIN           │
+--     │ (Access)     │  │(Access)  │  │  (Access)         │
+--     └──────────────┘  └──────────┘  └──────────────────┘
+--            │                │                  │
+--            ▼                ▼                  ▼
+--     ┌──────────────┐  ┌──────────┐  ┌──────────────────┐
+--     │  SELECT on   │  │INSERT,   │  │  CREATE TABLE,   │
+--     │  tables/views│  │UPDATE,   │  │  CREATE VIEW     │
+--     │              │  │DELETE    │  │                   │
+--     └──────────────┘  └──────────┘  └──────────────────┘
+--
+
+-- ┌──────────────────────────────────────────────────────────────────────────┐
+-- │  KEY CONCEPTS                                                             │
+-- └──────────────────────────────────────────────────────────────────────────┘
+--
+-- ACCESS ROLES:  Low-level roles that hold object privileges (READ, WRITE)
+-- FUNCTIONAL ROLES:  Business-level roles assigned to users (ANALYST, DBA)
+-- ROLE HIERARCHY:  Access roles granted to functional roles → SYSADMIN
+-- FUTURE GRANTS:  Auto-apply privileges to new objects (tables, views)
+-- MANAGED ACCESS:  Schema-level control; owners cannot grant access
+-- WITH GRANT OPTION:  Allows a role to re-grant privileges it holds
+-- DATABASE ROLES:  Roles scoped to a single database (can be shared)
+--                  Not yet a universal standard — most teams still use account
+--                  roles. However, increasingly adopted for data sharing (since
+--                  account roles can't be granted to shares) and by teams
+--                  managing many databases who want cleaner scoping.
+-- SECONDARY ROLES:  Additional roles that expand privileges in a session
+--
+
+-- ┌──────────────────────────────────────────────────────────────────────────┐
+-- │  BEST PRACTICES COVERED                                                   │
+-- └──────────────────────────────────────────────────────────────────────────┘
+--
+-- 1. Always connect custom roles to SYSADMIN (avoids orphaned roles)
+-- 2. Use access roles + functional roles (two-tier pattern)
+-- 3. Never grant privileges directly to users (always use roles)
+-- 4. Use FUTURE GRANTS to avoid manual grants on new objects
+-- 5. Use MANAGED ACCESS schemas for sensitive data
+-- 6. Audit privileges regularly using ACCOUNT_USAGE views
+-- 7. Apply least-privilege: grant only what's needed
+-- 8. Use WITH GRANT OPTION sparingly (delegated admin)
+-- 9. Use USE SECONDARY ROLES NONE when testing a role's exact privileges
+--    (secondary roles can silently elevate access via other granted roles)
+--
+--
+
+-- ============================================================================
+-- END OF README
+-- ============================================================================
