@@ -1,0 +1,51 @@
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- HOW TO INTERPRET EXERCISE RESULTS
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- EXERCISE 1: avg_queued_load < 0.1
+--   → Queries barely queue at all. The warehouse handles everything
+--     instantly — it's likely OVERSIZED for its workload.
+--   → ACTION: Try downsizing (e.g., MEDIUM → SMALL) and monitor.
+--     If queries still don't queue, downsize again. Save credits.
+--
+-- EXERCISE 2: avg_queued_load > 1
+--   → On average, more than 1 query is waiting in the queue at any time.
+--     Users are experiencing delays.
+--   → ACTION (single-cluster): Resize UP (e.g., SMALL → MEDIUM)
+--   → ACTION (already large): Enable multi-cluster (MAX_CLUSTER_COUNT > 1)
+--     Queuing = concurrency problem → scale OUT, not UP.
+--
+-- EXERCISE 3: avg_credit_per_query interpretation
+--   → High cost per query means either:
+--     (a) Warehouse is too large for simple queries (wasteful)
+--     (b) Queries are inefficient (full table scans, no pruning)
+--   → ACTION: Compare across warehouses. If WH_ADHOC has higher
+--     cost-per-query than WH_ETL, analysts may be running unoptimized
+--     queries on an oversized warehouse.
+--   → BENCHMARK: For XS warehouse, expect ~0.0003 credits/query for
+--     simple queries. If you see 0.01+, investigate those queries.
+--
+-- EXERCISE 4: bytes_spilled_to_remote_storage > 0
+--   → Query ran out of LOCAL memory/SSD and spilled to remote storage.
+--     This is VERY SLOW (network I/O) and indicates the warehouse
+--     is TOO SMALL for that query's data volume.
+--   → Spill to LOCAL storage: Acceptable (SSD, still fast)
+--   → Spill to REMOTE storage: BAD (S3/blob, 10-100x slower)
+--   → ACTION: Size UP the warehouse for workloads with remote spilling.
+--     Doubling warehouse size = doubling memory & SSD cache.
+--   → EXAMPLE: If a SMALL WH spills 50GB remote, try MEDIUM or LARGE.
+--     After resize, re-run the same query and verify no spilling.
+--
+-- GENERAL DECISION MATRIX:
+-- ┌─────────────────────────┬────────────────────────────────────────┐
+-- │ Symptom                 │ Fix                                    │
+-- ├─────────────────────────┼────────────────────────────────────────┤
+-- │ No queuing, low usage   │ Downsize warehouse (save cost)         │
+-- │ High queuing            │ Multi-cluster OR resize up             │
+-- │ Remote spilling         │ Resize up (more memory/SSD)            │
+-- │ High cost per query     │ Downsize OR optimize SQL               │
+-- │ Long exec + no spill    │ Check query plan (bad joins/scans)     │
+-- │ Queuing + no spilling   │ Concurrency issue → multi-cluster      │
+-- │ Queuing + spilling      │ Both: resize up AND multi-cluster      │
+-- └─────────────────────────┴────────────────────────────────────────┘
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
