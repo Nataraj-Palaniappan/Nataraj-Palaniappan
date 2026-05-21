@@ -1,0 +1,14 @@
+**Author:** NATARAJ_PALANIAPPAN
+-- ============================================================
+-- KEY TAKEAWAYS FROM THIS LAB
+-- ============================================================
+-- 1. SIZE UP for complex queries (joins, aggregations, sorts)
+-- 2. SCALE OUT (multi-cluster) for concurrent users/queries
+-- 3. AUTO-SUSPEND aggressively (60s for ETL, 300s for BI)
+-- 4. ISOLATE workloads (ETL, BI, ad-hoc, data science)
+-- 5. MONITOR queuing (indicates need for multi-cluster or resize)
+-- 6. MONITOR spilling (indicates need for larger warehouse)
+-- 7. USE RESOURCE MONITORS to prevent runaway costs
+-- 8. QAS helps with outlier queries without resizing
+-- 9. ADAPTIVE WAREHOUSES automate all of the above (preview)
+-- ============================================================
